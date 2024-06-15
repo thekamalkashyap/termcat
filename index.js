@@ -15,12 +15,20 @@ program.option("-c, --connect <other-uid>");
 program.parse();
 const options = program.opts();
 
-const ws = new WebSocket("ws://localhost:3000");
+const ws = new WebSocket("wss://termcat-server.onrender.com/");
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
+  prompt: "",
 });
-rl.setPrompt("");
+
+let log = console.log;
+console.log = (message) => {
+  readline.clearLine(process.stdout, 0);
+  readline.cursorTo(process.stdout, 0);
+  log(message);
+  rl.prompt(true);
+};
 
 let otherUid = null;
 
@@ -35,7 +43,11 @@ rl.on("line", (input) => {
   } else {
     console.log(red("you are not connected to any user."));
   }
-  rl.prompt();
+  rl.prompt(true);
+});
+
+ws.on("error", (error) => {
+  console.error("Something went wrong");
 });
 
 ws.on("open", async () => {
@@ -54,25 +66,31 @@ const handleConnected = (uid) => {
   rl.prompt();
 };
 
-const handleMessage = (message, sender) => {
+const handleNewMessage = (message, sender) => {
   console.log(blue(`[${sender}]: `) + message);
-  rl.prompt();
 };
 
-const handleJoined = (connect) => {
+const handleUserJoined = (connect) => {
   console.log(green("Connected to: ") + blue(bold(connect)));
   otherUid = connect;
 };
 
-const handleExit = () => {
+const handleProgramExit = () => {
   console.log(red("exiting..."));
   const data = {
     type: "exit",
     receiver: otherUid,
   };
-  ws.send(JSON.stringify(data));
-  ws.close();
+  if (ws.readyState == WebSocket.OPEN) {
+    ws.send(JSON.stringify(data));
+    ws.close();
+  }
   process.exit(1);
+};
+
+const handleUserExit = () => {
+  console.log(red(`${otherUid} left the chat.`));
+  otherUid = null;
 };
 
 ws.on("message", (data) => {
@@ -83,16 +101,15 @@ ws.on("message", (data) => {
       handleConnected(uid);
       break;
     case "joined":
-      handleJoined(connect);
+      handleUserJoined(connect);
       break;
     case "message":
-      handleMessage(message, sender);
+      handleNewMessage(message, sender);
       break;
     case "exit":
-      console.log(red(`${otherUid} left the chat.`));
-      otherUid = null;
+      handleUserExit();
       break;
   }
 });
 
-process.on("SIGINT", handleExit);
+process.on("SIGINT", handleProgramExit);

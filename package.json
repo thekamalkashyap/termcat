@@ -1,7 +1,7 @@
 {
   "name": "termcat",
   "description": "chat right from comfort of your terminal.",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "main": "index.js",
   "type": "module",
   "keywords": [
@@ -10,11 +10,8 @@
     "websocket"
   ],
   "bin": {
-    "termcat": "./dist/index.js"
+    "termcat": "index.js"
   },
-  "files": [
-    "dist"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/thekamalkashyap/termcat.git"
