@@ -1,7 +1,7 @@
 {
   "name": "termcat",
-  "description": "chat right from comfort of your terminal.",
-  "version": "1.0.2",
+  "description": "chat right from the comfort of your terminal.",
+  "version": "1.1.0",
   "main": "index.js",
   "type": "module",
   "keywords": [
@@ -12,22 +12,17 @@
   "bin": {
     "termcat": "index.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/thekamalkashyap/termcat.git"
-  },
+  "repository": "thekamalkashyap/termcat",
   "scripts": {
     "build": "ncc build index.js -m",
-    "start": "node index.js",
-    "dev": "node --watch index.js"
+    "start": "node index.js"
   },
   "dependencies": {
-    "@vercel/ncc": "^0.38.1",
     "commander": "^12.1.0",
     "picocolors": "^1.0.1",
     "uid-promise": "^2.0.5",
     "ws": "^8.17.0"
   },
   "license": "MIT",
-  "author": "Kamal Kashyap <sudokamal@proton.me>"
+  "author": "Kamal Kashyap <iamkamalkumar@proton.me>"
 }

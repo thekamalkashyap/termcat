@@ -5,24 +5,32 @@ import { uid as generateUid } from "uid-promise";
 import picocolors from "picocolors";
 import { program } from "commander";
 import { StringDecoder } from "string_decoder";
+import fs from "fs";
+
 const { green, red, blue, bold } = picocolors;
 const decoder = new StringDecoder("utf8");
+const packageJson = JSON.parse(fs.readFileSync("./package.json"));
 
-program.name("termcat");
-program.description("chat right from comfort of your terminal.");
-program.option("-n, --name <your-name>");
-program.option("-c, --connect <other-uid>");
+program.name(packageJson.name);
+program.description(packageJson.description);
+program.version(packageJson.version, "-v, --version");
+program.option("-n, --name <your-name>", "your name to display in chat");
+program.option(
+  "-c, --connect <other-uid>",
+  "uid of the user you want to connect with"
+);
 program.parse();
+
 const options = program.opts();
 
-const ws = new WebSocket("wss://termcat-server.onrender.com/");
+const ws = new WebSocket("wss://ws.gurpreetkaur.tech");
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
-  prompt: "",
+  prompt: green("[me]: "),
 });
 
-let log = console.log;
+const log = console.log;
 console.log = (message) => {
   readline.clearLine(process.stdout, 0);
   readline.cursorTo(process.stdout, 0);
@@ -30,20 +38,29 @@ console.log = (message) => {
   rl.prompt(true);
 };
 
+const errorLog = console.error;
+console.error = (message) => {
+  readline.clearLine(process.stdout, 0);
+  readline.cursorTo(process.stdout, 0);
+  errorLog(red(message));
+};
+
 let otherUid = null;
 
 rl.on("line", (input) => {
-  if (otherUid) {
-    const data = {
-      type: "message",
-      message: input,
-      receiver: otherUid,
-    };
-    ws.send(JSON.stringify(data));
-  } else {
-    console.log(red("you are not connected to any user."));
-  }
   rl.prompt(true);
+  if (!input.trim()) return;
+  if (!otherUid) {
+    console.error("you are not connected to any user.");
+    rl.prompt(true);
+    return;
+  }
+  const data = {
+    type: "message",
+    message: input,
+    receiver: otherUid,
+  };
+  ws.send(JSON.stringify(data));
 });
 
 ws.on("error", (error) => {
@@ -56,7 +73,7 @@ ws.on("open", async () => {
     type: "connect",
     name: options.name ?? "user",
     uid: uid,
-    connect: options.connect,
+    connect: options.connect ?? null,
   };
   ws.send(JSON.stringify(data));
 });
@@ -76,7 +93,7 @@ const handleUserJoined = (connect) => {
 };
 
 const handleProgramExit = () => {
-  console.log(red("exiting..."));
+  console.error("exiting...");
   const data = {
     type: "exit",
     receiver: otherUid,
@@ -89,8 +106,14 @@ const handleProgramExit = () => {
 };
 
 const handleUserExit = () => {
-  console.log(red(`${otherUid} left the chat.`));
+  console.error(`${otherUid} left the chat.`);
+  rl.prompt(true);
   otherUid = null;
+};
+
+const handleServerError = (message) => {
+  console.error(message);
+  process.exit(1);
 };
 
 ws.on("message", (data) => {
@@ -108,6 +131,9 @@ ws.on("message", (data) => {
       break;
     case "exit":
       handleUserExit();
+      break;
+    case "error":
+      handleServerError(message);
       break;
   }
 });
